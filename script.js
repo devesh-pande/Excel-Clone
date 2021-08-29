@@ -35,6 +35,50 @@ formulaInput.addEventListener("keydown", function(e){
     }
 
     cellObj.upstream = [] ;
+
+    let formulaArr = typedFormula.split(" ");
+    let cellsInFormula = [];
+
+    for (let i = 0 ; i < formulaArr.length ; i++){
+      if (formulaArr[i] != "+" && 
+          formulaArr[i] != "-" && 
+          formulaArr[i] != "*" && 
+          formulaArr[i] != "/" && 
+          isNaN(formulaArr[i])){
+            cellsInFormula.push(formulaArr[i]);
+      }
+    }
+
+    for (let i = 0 ; i < cellsInFormula.length ; i++) {
+      addToDownstream(cellsInFormula[i], selectedCellAdd);
+    };
+
+    cellObj.upstream = cellsInFormula ;  // [A1, B1]
+
+    let valObj = {};
+    for (let i = 0 ; i < cellsInFormula.length ; i++) {
+      let cellValue = dataObj[cellsInFormula[i]].value ;
+      valObj[cellsInFormula[i]] = cellValue ;
+    }
+
+    for (let key in valObj){
+      typedFormula = typedFormula.replace(key, valObj[key]);
+    }
+
+    let newValue = eval(typedFormula);
+    
+    lastCell.innerText = newValue ;
+
+    cellObj.value = newValue ;
+    let downstream  = cellObj.downstream ;
+
+    for (let i = 0 ; i < downstream.length ; i++) {
+      updateCell(downstream[i]);
+    }
+
+    dataObj[selectedCellAdd] = cellObj;
+
+    formulaInput.value = "";
   }
 });
 
@@ -86,6 +130,9 @@ for (let i = 1; i <= 100; i++) {
       formula : undefined ,
       upstream : [] ,
       downstream : [] ,
+      align: "left",
+      color: "black",
+      bgColor: "white",
     };
 
     let cellDiv = document.createElement("div");
@@ -101,7 +148,7 @@ for (let i = 1; i <= 100; i++) {
       let currCellObj = dataObj[currCellAddress];
 
       currCellObj.value = e.currentTarget.innerText;
-
+      currCellObj.formula = undefined;
 
       // 1 -> Loop on Upstream
       // 2 -> for each cell go to its downstream and remove ourself
@@ -161,21 +208,6 @@ for (let i = 1; i <= 100; i++) {
 
 }
 
-
-
-dataObj["A1"].value = 20;
-dataObj["A1"].downstream = ["B1"];
-dataObj["B1"].formula = "2 * A1";
-dataObj["B1"].upstream = ["A1"];
-dataObj["B1"].value = 40;
-
-let a1cell = document.querySelector("[data-address='A1']")
-let b1cell = document.querySelector("[data-address='B1']")
-
-a1cell.innerText = 20
-b1cell.innerText = 40
-
-
 // C1 = Formula(2*A1)
 // A1 = parent
 // C1 = child
@@ -184,6 +216,17 @@ b1cell.innerText = 40
 //iska bs itna kaam h ki parent do and child do , aur mai parent ki downstream se child ko hta dunga
 //taki unke bichka connection khtm hojai
 //taki agr parent update ho to connection khtm hone ke baad child update na ho
+
+if (localStorage.getItem("sheet")) {
+  console.log(1);
+  dataObj = JSON.parse(localStorage.getItem("sheet"));
+
+  for (let x in dataObj) {
+    let cell = document.querySelector(`[data-address='${x}']`);
+    if (dataObj[x].value) cell.innerText = dataObj[x].value;
+    // dataObj[x]
+  }
+}
 
 function removeFromDownstream(parentCell, childCell){
 
@@ -206,7 +249,6 @@ function removeFromDownstream(parentCell, childCell){
   dataObj[parentCell].downstream = filteredDownstream ;
 
 }
-
 
 
 function updateCell(cell){
@@ -254,4 +296,10 @@ function updateCell(cell){
     updateCell(downstream[i]);
   }
 
+}
+
+
+function addToDownstream(parentCell, childCell){
+ // child ko parent ki downstream me add krna hai
+  dataObj[parent].downstream.push(child);
 }
